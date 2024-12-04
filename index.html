@@ -3,50 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner de Códigos</title>
-    <script>
-        async function scanBarcode() {
-            const video = document.createElement("video");
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                video.srcObject = stream;
-                video.setAttribute("playsinline", true); // Para iOS
-                video.play();
-                const barcodeCanvas = document.createElement("canvas");
-                const ctx = barcodeCanvas.getContext("2d");
-
-                // Escanea el código
-                const interval = setInterval(() => {
-                    barcodeCanvas.width = video.videoWidth;
-                    barcodeCanvas.height = video.videoHeight;
-                    ctx.drawImage(video, 0, 0, barcodeCanvas.width, barcodeCanvas.height);
-                    const barcode = "Aquí usarías una librería como QuaggaJS para leer el código"; // Requiere librería adicional
-                    if (barcode) {
-                        clearInterval(interval);
-                        stream.getTracks().forEach(track => track.stop()); // Detén la cámara
-                        alert("Código escaneado: " + barcode);
-                        sendBarcode(barcode);
-                    }
-                }, 100);
-            } catch (error) {
-                console.error("Error al acceder a la cámara:", error);
-                alert("No se pudo acceder a la cámara.");
-            }
-        }
-
-        function sendBarcode(barcode) {
-            fetch("http://<IP_DEL_SERVIDOR>:5000/scan", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ codigo: barcode })
-            }).then(response => response.json())
-              .then(data => alert(data.message))
-              .catch(error => alert("Error al enviar el código: " + error));
-        }
-    </script>
+    <title>Escáner de Códigos de Barras</title>
+    <script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
 </head>
 <body>
-    <h1>Escáner de Código de Barras</h1>
-    <button onclick="scanBarcode()">Escanear Código</button>
+    
+    <h1>Escanear Código de Barras</h1>
+    <div id="scanner-container" style="width: 100%; max-width: 600px; margin: auto;"></div>
+    <p>Resultado: <span id="result"></span></p>
+    
+    <script>
+        // Configuración de QuaggaJS
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#scanner-container'), // Contenedor para la cámara
+                constraints: {
+                    width: 2408,
+                    height: 1080,
+                    //facing: "environment" // Cámara trasera
+                    deviceId: "ba8cd7d243a44b12c665aeee0b2af825db48767b3787a50e67be0cf458c952e7"
+                }
+            },
+            decoder: {
+                readers: ["code_128_reader", "ean_reader", "ean_8_reader"] // Tipos de códigos de barras
+            },
+            locator: {
+                patchSize: "large", // Cambiar a "large" para mejorar la calidad de procesamiento
+                halfSample: false    // Deshabilitar muestreo reducido
+            }
+
+        }, function(err) {
+            if (err) {
+                console.error(err);
+                alert("Error al iniciar el escáner");
+                return;
+            }
+            console.log("QuaggaJS está inicializado");
+            Quagga.start();
+        });
+
+        // Procesar resultados
+        Quagga.onDetected(function(data) {
+            const code = data.codeResult.code;
+            console.log("Código detectado:", code);
+            document.getElementById("result").textContent = code;
+
+            // Detener el escáner después de leer
+            Quagga.stop();
+        });
+    </script>
 </body>
 </html>
