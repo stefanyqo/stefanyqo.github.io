@@ -3,27 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner de Cámara</title>
-</head>
-<body>
-    <h1>Acceso a la Cámara</h1>
-    <video id="video" autoplay playsinline style="width: 100%; max-width: 400px;"></video>
+    <title>Escáner de Códigos</title>
     <script>
-        async function startCamera() {
+        async function scanBarcode() {
+            const video = document.createElement("video");
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "environment" }, // Usa la cámara trasera
-                    audio: false
-                });
-                const videoElement = document.getElementById("video");
-                videoElement.srcObject = stream;
-                videoElement.play();
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true); // Para iOS
+                video.play();
+                const barcodeCanvas = document.createElement("canvas");
+                const ctx = barcodeCanvas.getContext("2d");
+
+                // Escanea el código
+                const interval = setInterval(() => {
+                    barcodeCanvas.width = video.videoWidth;
+                    barcodeCanvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0, barcodeCanvas.width, barcodeCanvas.height);
+                    const barcode = "Aquí usarías una librería como QuaggaJS para leer el código"; // Requiere librería adicional
+                    if (barcode) {
+                        clearInterval(interval);
+                        stream.getTracks().forEach(track => track.stop()); // Detén la cámara
+                        alert("Código escaneado: " + barcode);
+                        sendBarcode(barcode);
+                    }
+                }, 100);
             } catch (error) {
                 console.error("Error al acceder a la cámara:", error);
-                alert("No se pudo acceder a la cámara. Verifica los permisos.");
+                alert("No se pudo acceder a la cámara.");
             }
         }
-        startCamera();
+
+        function sendBarcode(barcode) {
+            fetch("http://<IP_DEL_SERVIDOR>:5000/scan", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ codigo: barcode })
+            }).then(response => response.json())
+              .then(data => alert(data.message))
+              .catch(error => alert("Error al enviar el código: " + error));
+        }
     </script>
+</head>
+<body>
+    <h1>Escáner de Código de Barras</h1>
+    <button onclick="scanBarcode()">Escanear Código</button>
 </body>
 </html>
