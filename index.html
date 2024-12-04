@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner de Códigos de Barras</title>
+    <script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
+</head>
+<body>
+    <h1>Escanear Código de Barras</h1>
+    <div id="scanner-container" style="width: 100%; max-width: 600px; margin: auto;"></div>
+    <p>Resultado: <span id="result"></span></p>
+
+    <script>
+        // Configuración de QuaggaJS
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#scanner-container'), // Contenedor para la cámara
+                constraints: {
+                    width: 320,
+                    height: 240,
+                    facingMode: "environment" // Cámara trasera
+                }
+            },
+            decoder: {
+                readers: ["code_128_reader", "ean_reader", "ean_8_reader"] // Tipos de códigos de barras
+            }
+        }, function(err) {
+            if (err) {
+                console.error(err);
+                alert("Error al iniciar el escáner");
+                return;
+            }
+            console.log("QuaggaJS está inicializado");
+            Quagga.start();
+        });
+
+        // Procesar resultados
+        Quagga.onDetected(function(data) {
+            const code = data.codeResult.code;
+            console.log("Código detectado:", code);
+            document.getElementById("result").textContent = code;
+
+            // Detener el escáner después de leer
+            Quagga.stop();
+        });
+    </script>
+</body>
+</html>
